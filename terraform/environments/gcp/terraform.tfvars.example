@@ -1,0 +1,17 @@
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+
+# Grafana configuration
+grafana_admin_password = "your-secure-password-here"
+
+# Optional: Override defaults
+# prometheus_image = "prom/prometheus:v2.45.0"
+# loki_image = "grafana/loki:2.9.0"
+# tempo_image = "grafana/tempo:2.2.0"
+# grafana_image = "grafana/grafana:10.0.0"
+
+# retention_days = 30
+# force_destroy = false
+# allow_public_access = false
+# allow_authenticated_access = true
+
