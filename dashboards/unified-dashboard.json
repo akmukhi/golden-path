@@ -1,0 +1,307 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "unified-observability",
+    "title": "Unified Observability Dashboard",
+    "tags": ["observability", "golden-path"],
+    "style": "dark",
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "service",
+          "type": "query",
+          "datasource": {
+            "uid": "Prometheus",
+            "type": "prometheus"
+          },
+          "definition": "label_values(service)",
+          "query": {
+            "query": "label_values(service)",
+            "refId": "StandardVariableQuery"
+          },
+          "current": {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          },
+          "options": [],
+          "includeAll": true,
+          "multi": true,
+          "allValue": null
+        },
+        {
+          "name": "environment",
+          "type": "query",
+          "datasource": {
+            "uid": "Prometheus",
+            "type": "prometheus"
+          },
+          "definition": "label_values(environment)",
+          "query": {
+            "query": "label_values(environment)",
+            "refId": "StandardVariableQuery"
+          },
+          "current": {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          },
+          "options": [],
+          "includeAll": true,
+          "multi": true
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "type": "graph",
+        "title": "HTTP Request Rate",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{service=~\"$service\", environment=~\"$environment\"}[5m])) by (method, status_code)",
+            "refId": "A",
+            "legendFormat": "{{method}} {{status_code}}"
+          }
+        ],
+        "datasource": {
+          "uid": "Prometheus",
+          "type": "prometheus"
+        },
+        "yaxes": [
+          {
+            "format": "reqps",
+            "label": "Requests/sec"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "type": "graph",
+        "title": "HTTP Request Duration (p50, p95, p99)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{service=~\"$service\", environment=~\"$environment\"}[5m])) by (le, method, endpoint))",
+            "refId": "A",
+            "legendFormat": "p50 {{method}} {{endpoint}}"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service=~\"$service\", environment=~\"$environment\"}[5m])) by (le, method, endpoint))",
+            "refId": "B",
+            "legendFormat": "p95 {{method}} {{endpoint}}"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{service=~\"$service\", environment=~\"$environment\"}[5m])) by (le, method, endpoint))",
+            "refId": "C",
+            "legendFormat": "p99 {{method}} {{endpoint}}"
+          }
+        ],
+        "datasource": {
+          "uid": "Prometheus",
+          "type": "prometheus"
+        },
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Duration"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "type": "graph",
+        "title": "Error Rate",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{service=~\"$service\", environment=~\"$environment\", status_code=~\"5..\"}[5m])) by (service, endpoint)",
+            "refId": "A",
+            "legendFormat": "{{service}} {{endpoint}}"
+          }
+        ],
+        "datasource": {
+          "uid": "Prometheus",
+          "type": "prometheus"
+        },
+        "yaxes": [
+          {
+            "format": "reqps",
+            "label": "Errors/sec"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "type": "graph",
+        "title": "Business Operations",
+        "targets": [
+          {
+            "expr": "sum(rate(business_operations_total{service=~\"$service\", environment=~\"$environment\"}[5m])) by (operation, status)",
+            "refId": "A",
+            "legendFormat": "{{operation}} {{status}}"
+          }
+        ],
+        "datasource": {
+          "uid": "Prometheus",
+          "type": "prometheus"
+        },
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Operations/sec"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16},
+        "type": "logs",
+        "title": "Application Logs",
+        "targets": [
+          {
+            "expr": "{service=~\"$service\", environment=~\"$environment\"}",
+            "refId": "A",
+            "datasource": {
+              "uid": "Loki",
+              "type": "loki"
+            }
+          }
+        ],
+        "options": {
+          "dedupStrategy": "none",
+          "enableLogDetails": true,
+          "prettifyLogMessage": false,
+          "showCommonLabels": false,
+          "showLabels": false,
+          "showTime": true,
+          "sortOrder": "Descending",
+          "wrapLogMessage": false
+        }
+      },
+      {
+        "id": 6,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "type": "traces",
+        "title": "Trace Explorer",
+        "targets": [
+          {
+            "query": "{service.name=~\"$service\"}",
+            "refId": "A",
+            "datasource": {
+              "uid": "Tempo",
+              "type": "tempo"
+            }
+          }
+        ],
+        "datasource": {
+          "uid": "Tempo",
+          "type": "tempo"
+        }
+      },
+      {
+        "id": 7,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "type": "nodeGraph",
+        "title": "Service Map",
+        "targets": [
+          {
+            "query": "{service.name=~\"$service\"}",
+            "refId": "A",
+            "datasource": {
+              "uid": "Tempo",
+              "type": "tempo"
+            }
+          }
+        ],
+        "datasource": {
+          "uid": "Tempo",
+          "type": "tempo"
+        }
+      },
+      {
+        "id": 8,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+        "type": "stat",
+        "title": "Active Connections",
+        "targets": [
+          {
+            "expr": "sum(active_connections{service=~\"$service\", environment=~\"$environment\"})",
+            "refId": "A"
+          }
+        ],
+        "datasource": {
+          "uid": "Prometheus",
+          "type": "prometheus"
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "textMode": "auto"
+        }
+      },
+      {
+        "id": 9,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+        "type": "stat",
+        "title": "Queue Sizes",
+        "targets": [
+          {
+            "expr": "sum(queue_size{service=~\"$service\", environment=~\"$environment\"}) by (queue_name)",
+            "refId": "A",
+            "legendFormat": "{{queue_name}}"
+          }
+        ],
+        "datasource": {
+          "uid": "Prometheus",
+          "type": "prometheus"
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "textMode": "auto"
+        }
+      }
+    ]
+  }
+}
+
