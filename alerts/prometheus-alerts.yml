@@ -1,0 +1,124 @@
+groups:
+  - name: http_alerts
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status_code=~"5.."}[5m])) by (service, endpoint)
+          /
+          sum(rate(http_requests_total[5m])) by (service, endpoint)
+          > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: http
+        annotations:
+          summary: "High error rate detected for {{ $labels.service }}/{{ $labels.endpoint }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.service }}/{{ $labels.endpoint }}"
+
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service, endpoint))
+          > 1.0
+        for: 10m
+        labels:
+          severity: warning
+          component: http
+        annotations:
+          summary: "High latency detected for {{ $labels.service }}/{{ $labels.endpoint }}"
+          description: "p95 latency is {{ $value }}s for {{ $labels.service }}/{{ $labels.endpoint }}"
+
+      - alert: RequestRateSpike
+        expr: |
+          rate(http_requests_total[5m]) > 1000
+        for: 2m
+        labels:
+          severity: warning
+          component: http
+        annotations:
+          summary: "Request rate spike detected"
+          description: "Request rate is {{ $value }} req/s for {{ $labels.service }}/{{ $labels.endpoint }}"
+
+  - name: business_alerts
+    interval: 30s
+    rules:
+      - alert: HighBusinessOperationFailureRate
+        expr: |
+          sum(rate(business_operations_total{status="error"}[5m])) by (operation, service)
+          /
+          sum(rate(business_operations_total[5m])) by (operation, service)
+          > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          component: business
+        annotations:
+          summary: "High failure rate for business operation {{ $labels.operation }}"
+          description: "Failure rate is {{ $value | humanizePercentage }} for {{ $labels.operation }} in {{ $labels.service }}"
+
+      - alert: SlowBusinessOperation
+        expr: |
+          histogram_quantile(0.95, sum(rate(business_operation_duration_seconds_bucket[5m])) by (le, operation))
+          > 5.0
+        for: 10m
+        labels:
+          severity: warning
+          component: business
+        annotations:
+          summary: "Slow business operation detected"
+          description: "p95 duration is {{ $value }}s for {{ $labels.operation }}"
+
+  - name: system_alerts
+    interval: 30s
+    rules:
+      - alert: HighConnectionCount
+        expr: |
+          active_connections > 10000
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High connection count detected"
+          description: "Active connections: {{ $value }} for {{ $labels.service }}"
+
+      - alert: LargeQueueSize
+        expr: |
+          queue_size > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "Large queue size detected"
+          description: "Queue {{ $labels.queue_name }} has {{ $value }} items in {{ $labels.service }}"
+
+      - alert: ServiceDown
+        expr: |
+          up{job=~".+"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been down for more than 1 minute"
+
+  - name: availability_alerts
+    interval: 30s
+    rules:
+      - alert: LowAvailability
+        expr: |
+          (
+            sum(rate(http_requests_total{status_code!~"5.."}[5m])) by (service)
+            /
+            sum(rate(http_requests_total[5m])) by (service)
+          ) < 0.99
+        for: 15m
+        labels:
+          severity: critical
+          component: availability
+        annotations:
+          summary: "Low availability for {{ $labels.service }}"
+          description: "Availability is {{ $value | humanizePercentage }} for {{ $labels.service }} (target: 99%)"
+

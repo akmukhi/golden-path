@@ -1,0 +1,100 @@
+groups:
+  - name: log_based_alerts
+    interval: 30s
+    rules:
+      - alert: HighErrorLogRate
+        expr: |
+          sum(rate({service=~".+", level="error"} |= "error" [5m])) by (service)
+          > 10
+        for: 5m
+        labels:
+          severity: critical
+          component: logs
+        annotations:
+          summary: "High error log rate for {{ $labels.service }}"
+          description: "Error log rate is {{ $value }} logs/sec for {{ $labels.service }}"
+
+      - alert: CriticalErrorPattern
+        expr: |
+          sum(rate({service=~".+"} |~ "fatal|panic|critical" [5m])) by (service)
+          > 1
+        for: 2m
+        labels:
+          severity: critical
+          component: logs
+        annotations:
+          summary: "Critical error pattern detected in {{ $labels.service }}"
+          description: "Critical error pattern detected in logs for {{ $labels.service }}"
+
+      - alert: AuthenticationFailureSpike
+        expr: |
+          sum(rate({service=~".+"} |~ "authentication.*failed|login.*failed|unauthorized" [5m])) by (service)
+          > 50
+        for: 5m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "Authentication failure spike for {{ $labels.service }}"
+          description: "Authentication failure rate is {{ $value }} failures/sec for {{ $labels.service }}"
+
+      - alert: DatabaseConnectionErrors
+        expr: |
+          sum(rate({service=~".+"} |~ "database.*connection.*error|db.*connection.*failed" [5m])) by (service)
+          > 5
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection errors for {{ $labels.service }}"
+          description: "Database connection error rate is {{ $value }} errors/sec for {{ $labels.service }}"
+
+      - alert: OutOfMemoryErrors
+        expr: |
+          sum(rate({service=~".+"} |~ "out of memory|OOM|memory.*error" [5m])) by (service)
+          > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Out of memory errors detected for {{ $labels.service }}"
+          description: "Out of memory errors detected in logs for {{ $labels.service }}"
+
+      - alert: HighExceptionRate
+        expr: |
+          sum(rate({service=~".+"} |~ "exception|Exception" [5m])) by (service)
+          > 20
+        for: 5m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "High exception rate for {{ $labels.service }}"
+          description: "Exception rate is {{ $value }} exceptions/sec for {{ $labels.service }}"
+
+      - alert: SlowQueryDetected
+        expr: |
+          sum(rate({service=~".+"} |~ "slow.*query|query.*slow" [5m])) by (service)
+          > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Slow queries detected for {{ $labels.service }}"
+          description: "Slow query rate is {{ $value }} queries/sec for {{ $labels.service }}"
+
+      - alert: ServiceStartupFailure
+        expr: |
+          sum(rate({service=~".+"} |~ "failed to start|startup.*failed|initialization.*failed" [5m])) by (service)
+          > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: application
+        annotations:
+          summary: "Service startup failure for {{ $labels.service }}"
+          description: "Service startup failures detected in logs for {{ $labels.service }}"
+
